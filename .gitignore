@@ -1,0 +1,5 @@
+.env
+__pycache__/
+*.pyc
+feedback_bot.db
+.env.*
