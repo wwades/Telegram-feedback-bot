@@ -104,11 +104,17 @@ async def handle_admin_reply(message: Message, db: Database, admin_id: int, bot:
 
     user_id, _, _, _ = mapping
 
-    await bot.send_message(
-        chat_id=user_id,
-        text="📬 *Reply from admin:*\n\n" f"{message.text or '<non-text content>'}",
-        parse_mode="Markdown",
-    )
+    text_to_send = message.text or "<non-text content>"
+
+    try:
+        await bot.send_message(
+            chat_id=user_id,
+            text=f"📬 Reply from admin:\n\n{text_to_send}",
+        )
+    except Exception as exc:
+        await message.answer(f"❌ Failed to deliver reply to user: {exc!r}")
+        return
+
     await message.answer("✅ Reply has been delivered to the user.")
 
 
