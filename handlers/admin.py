@@ -105,17 +105,21 @@ async def cmd_whoami(message: Message, admin_id: int) -> None:
 
 
 @router.message(F.reply_to_message)
-async def handle_admin_reply(
-    message: Message, db: Database, admin_id: int, bot: Bot
+async def admin_reply_handler(
+    message: Message,
+    db: Database,
+    admin_id: int,
+    bot: Bot,
 ) -> None:
     if message.from_user is None or message.from_user.id != admin_id:
         return
 
-    reply_to = message.reply_to_message
-    if reply_to is None:
+    if message.reply_to_message is None:
         return
 
-    mapping = await db.get_message_by_admin_message_id(reply_to.message_id)
+    mapping = await db.get_message_by_admin_message_id(
+        message.reply_to_message.message_id
+    )
     if mapping is None:
         await message.answer(
             "⚠️ Cannot determine which user to reply to for this message."
@@ -124,22 +128,8 @@ async def handle_admin_reply(
 
     user_id, _, _, _ = mapping
 
-    text_to_send = message.text or "<non-text content>"
-
-    try:
-        # Debug info to понять, кому именно уходит ответ
-        await message.answer(
-            f"ℹ️ Debug: sending reply to user_id={user_id} (your admin_id={admin_id})."
-        )
-        await bot.send_message(
-            chat_id=user_id,
-            text=f"📬 Reply from admin:\n\n{text_to_send}",
-        )
-    except Exception as exc:
-        await message.answer(f"❌ Failed to deliver reply to user: {exc!r}")
-        return
-
-    await message.answer("✅ Reply has been delivered to the user.")
+    await bot.send_message(chat_id=user_id, text=message.text or "")
+    await message.answer("✅ Ответ отправлен пользователю.")
 
 
 @router.callback_query(F.data.startswith("block:"))
