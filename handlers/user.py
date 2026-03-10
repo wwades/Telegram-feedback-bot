@@ -81,6 +81,10 @@ async def handle_feedback(message: Message, db: Database, admin_id: int, bot: Bo
     is_anonymous, anon_id = await db.get_anonymous_state(user.id)
     is_blocked = await db.is_blocked(user.id)
 
+    # Extra safety: if пользователь заблокирован, не пересылаем ничего администратору.
+    if is_blocked:
+        return
+
     if is_anonymous:
         header = "📩 *New anonymous feedback*"
         sender_info = f"Sender: Anonymous (Anon ID: `{anon_id}`)"
@@ -171,12 +175,28 @@ async def handle_feedback(message: Message, db: Database, admin_id: int, bot: Bo
         anon_id=anon_id,
     )
 
-    # For non-text content, also forward/copy the original message to admin
-    if not message.text or message.photo or message.video or message.animation or message.sticker or message.document or message.audio or message.voice:
-        await bot.copy_message(
+    # For non-text content, also copy the original message to admin
+    if (
+        not message.text
+        or message.photo
+        or message.video
+        or message.animation
+        or message.sticker
+        or message.document
+        or message.audio
+        or message.voice
+    ):
+        media_message = await bot.copy_message(
             chat_id=admin_id,
             from_chat_id=message.chat.id,
             message_id=message.message_id,
+        )
+        # Allow admin to reply directly to the media message as well
+        await db.save_admin_message(
+            user_id=user.id,
+            admin_message_id=media_message.message_id,
+            is_anonymous=is_anonymous,
+            anon_id=anon_id,
         )
 
     await message.answer("✅ Your message has been sent to the admin.")
