@@ -2,6 +2,7 @@ import random
 import string
 
 from aiogram import Router, F, Bot
+from aiogram.enums import ChatType
 from aiogram.filters import CommandStart
 from aiogram.types import (
     Message,
@@ -72,7 +73,7 @@ async def toggle_anonymous(message: Message, db: Database) -> None:
     await message.answer(text, reply_markup=keyboard, parse_mode="Markdown")
 
 
-@router.message()
+@router.message(F.chat.type == ChatType.PRIVATE, ~F.reply_to_message)
 async def handle_feedback(message: Message, db: Database, admin_id: int, bot: Bot) -> None:
     if not message.from_user:
         return
