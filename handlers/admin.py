@@ -76,6 +76,18 @@ async def cmd_reveal(message: Message, command: CommandObject, db: Database, bot
     )
 
 
+@router.message(Command("whoami"))
+async def cmd_whoami(message: Message, admin_id: int) -> None:
+    if message.from_user is None:
+        return
+
+    await message.answer(
+        "🔍 Debug info:\n"
+        f"Your Telegram ID: `{message.from_user.id}`\n"
+        f"Configured ADMIN_ID: `{admin_id}`",
+        parse_mode="Markdown",
+    )
+
 @router.message(F.reply_to_message)
 async def handle_admin_reply(message: Message, db: Database, admin_id: int, bot: Bot) -> None:
     if message.from_user is None or message.from_user.id != admin_id:
