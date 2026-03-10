@@ -55,8 +55,9 @@ class Database:
         )
         row = await cursor.fetchone()
         await cursor.close()
-        if row:
-            return row
+        if row is not None:
+            user_id_val, is_blocked, is_anonymous, anon_id = row
+            return int(user_id_val), int(is_blocked), int(is_anonymous), anon_id
 
         await self._conn.execute(
             "INSERT INTO users (user_id, is_blocked, is_anonymous, anon_id) VALUES (?, 0, 0, NULL)",

@@ -1,8 +1,13 @@
-from typing import Optional
+# ruff: noqa: I001
 
-from aiogram import Router, F, Bot
+from aiogram import Bot, F, Router
 from aiogram.filters import Command, CommandObject
-from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import (
+    CallbackQuery,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    Message,
+)
 
 from database.db import Database
 
@@ -11,7 +16,9 @@ router = Router()
 
 
 @router.message(Command("block"))
-async def cmd_block(message: Message, command: CommandObject, db: Database, admin_id: int) -> None:
+async def cmd_block(
+    message: Message, command: CommandObject, db: Database, admin_id: int
+) -> None:
     if message.from_user is None or message.from_user.id != admin_id:
         return
 
@@ -25,11 +32,15 @@ async def cmd_block(message: Message, command: CommandObject, db: Database, admi
         return
 
     await db.set_block_status(user_id, True)
-    await message.answer(f"✅ User `{user_id}` has been blocked.", parse_mode="Markdown")
+    await message.answer(
+        f"✅ User `{user_id}` has been blocked.", parse_mode="Markdown"
+    )
 
 
 @router.message(Command("unblock"))
-async def cmd_unblock(message: Message, command: CommandObject, db: Database, admin_id: int) -> None:
+async def cmd_unblock(
+    message: Message, command: CommandObject, db: Database, admin_id: int
+) -> None:
     if message.from_user is None or message.from_user.id != admin_id:
         return
 
@@ -43,11 +54,15 @@ async def cmd_unblock(message: Message, command: CommandObject, db: Database, ad
         return
 
     await db.set_block_status(user_id, False)
-    await message.answer(f"✅ User `{user_id}` has been unblocked.", parse_mode="Markdown")
+    await message.answer(
+        f"✅ User `{user_id}` has been unblocked.", parse_mode="Markdown"
+    )
 
 
 @router.message(Command("reveal"))
-async def cmd_reveal(message: Message, command: CommandObject, db: Database, bot: Bot, admin_id: int) -> None:
+async def cmd_reveal(
+    message: Message, command: CommandObject, db: Database, bot: Bot, admin_id: int
+) -> None:
     if message.chat.id != admin_id:
         return
 
@@ -88,8 +103,11 @@ async def cmd_whoami(message: Message, admin_id: int) -> None:
         parse_mode="Markdown",
     )
 
+
 @router.message(F.reply_to_message)
-async def handle_admin_reply(message: Message, db: Database, admin_id: int, bot: Bot) -> None:
+async def handle_admin_reply(
+    message: Message, db: Database, admin_id: int, bot: Bot
+) -> None:
     if message.from_user is None or message.from_user.id != admin_id:
         return
 
@@ -99,7 +117,9 @@ async def handle_admin_reply(message: Message, db: Database, admin_id: int, bot:
 
     mapping = await db.get_message_by_admin_message_id(reply_to.message_id)
     if mapping is None:
-        await message.answer("⚠️ Cannot determine which user to reply to for this message.")
+        await message.answer(
+            "⚠️ Cannot determine which user to reply to for this message."
+        )
         return
 
     user_id, _, _, _ = mapping
@@ -133,7 +153,10 @@ async def cb_block_user(callback: CallbackQuery, db: Database, admin_id: int) ->
     user_id = int(user_id_str)
     await db.set_block_status(user_id, True)
     await callback.answer("User has been blocked.")
-    await callback.message.edit_reply_markup(
+    message = callback.message
+    if not isinstance(message, Message):
+        return
+    await message.edit_reply_markup(
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
                 [
@@ -162,7 +185,10 @@ async def cb_unblock_user(callback: CallbackQuery, db: Database, admin_id: int) 
     user_id = int(user_id_str)
     await db.set_block_status(user_id, False)
     await callback.answer("User has been unblocked.")
-    await callback.message.edit_reply_markup(
+    message = callback.message
+    if not isinstance(message, Message):
+        return
+    await message.edit_reply_markup(
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
                 [
@@ -181,7 +207,9 @@ async def cb_unblock_user(callback: CallbackQuery, db: Database, admin_id: int) 
 
 
 @router.callback_query(F.data.startswith("reveal:"))
-async def cb_reveal_identity(callback: CallbackQuery, db: Database, bot: Bot, admin_id: int) -> None:
+async def cb_reveal_identity(
+    callback: CallbackQuery, db: Database, bot: Bot, admin_id: int
+) -> None:
     if callback.from_user is None or callback.from_user.id != admin_id:
         await callback.answer()
         return
@@ -200,7 +228,10 @@ async def cb_reveal_identity(callback: CallbackQuery, db: Database, bot: Bot, ad
     username = f"@{user.username}" if user.username else "No username"
 
     await callback.answer()
-    await callback.message.reply(
+    message = callback.message
+    if message is None:
+        return
+    await message.reply(
         "🕵️ *Identity revealed:*\n"
         f"Anon ID: `{anon_id}`\n"
         f"ID: `{user_id}`\n"
@@ -216,6 +247,7 @@ async def cb_reply_hint(callback: CallbackQuery, admin_id: int) -> None:
         await callback.answer()
         return
 
-    await callback.answer("Reply to this message using Telegram's Reply function to answer the user.", show_alert=True)
-
-
+    await callback.answer(
+        "Reply to this message using Telegram's Reply function to answer the user.",
+        show_alert=True,
+    )
