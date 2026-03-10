@@ -107,6 +107,10 @@ async def handle_admin_reply(message: Message, db: Database, admin_id: int, bot:
     text_to_send = message.text or "<non-text content>"
 
     try:
+        # Debug info to понять, кому именно уходит ответ
+        await message.answer(
+            f"ℹ️ Debug: sending reply to user_id={user_id} (your admin_id={admin_id})."
+        )
         await bot.send_message(
             chat_id=user_id,
             text=f"📬 Reply from admin:\n\n{text_to_send}",
