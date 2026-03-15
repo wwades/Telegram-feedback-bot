@@ -16,8 +16,8 @@ router = Router()
 def get_user_contact_kb() -> InlineKeyboardMarkup:
     buttons = [
         [
-            InlineKeyboardButton(text="📧 Почта", callback_data="get_mail"),
-            InlineKeyboardButton(text="📱 Session", callback_data="get_session"),
+            InlineKeyboardButton(text="Почта", callback_data="get_mail"),
+            InlineKeyboardButton(text="Session", callback_data="get_session"),
         ]
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
