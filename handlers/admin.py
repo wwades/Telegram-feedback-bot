@@ -1,4 +1,3 @@
-# ruff: noqa: I001
 from aiogram import Bot, F, Router
 from aiogram.filters import Command, CommandObject
 from aiogram.types import (
@@ -7,6 +6,7 @@ from aiogram.types import (
     InlineKeyboardMarkup,
     Message,
 )
+
 from database.db import Database
 
 router = Router()
@@ -16,7 +16,6 @@ router = Router()
 async def cmd_block(
     message: Message, command: CommandObject, db: Database, admin_id: int
 ) -> None:
-    # Проверка, что сообщение от админа
     if message.from_user is None or message.from_user.id != admin_id:
         return
 
@@ -79,11 +78,7 @@ async def admin_reply_handler(
     admin_id: int,
     bot: Bot,
 ) -> None:
-
     if message.from_user is None or message.from_user.id != admin_id:
-        return
-
-    if not message.reply_to_message:
         return
 
     user_id = await db.get_message_by_admin_message_id(
@@ -91,18 +86,14 @@ async def admin_reply_handler(
     )
 
     if user_id is None:
-        await message.answer(
-            "⚠️ Не удалось найти пользователя для ответа (возможно, сообщение слишком старое)."
-        )
+        await message.answer("⚠️ Не удалось найти пользователя для ответа.")
         return
 
     try:
-        await bot.send_message(
-            chat_id=user_id, text=message.text or "Пересланное сообщение без текста."
-        )
-        await message.answer("✅ Ответ отправлен пользователю.")
+        await message.copy_to(chat_id=user_id)
+        await message.answer("✅ Ответ отправлен.")
     except Exception as e:
-        await message.answer(f"❌ Ошибка при отправке: {e}")
+        await message.answer(f"❌ Ошибка: {e}")
 
 
 @router.callback_query(F.data.startswith("block:"))
@@ -174,6 +165,6 @@ async def cb_reply_hint(callback: CallbackQuery, admin_id: int) -> None:
         return
 
     await callback.answer(
-        "Используйте стандартную функцию 'Ответить' (Reply) на сообщение выше.",
+        "Используйте стандартную функцию 'Ответить' на сообщение выше.",
         show_alert=True,
     )

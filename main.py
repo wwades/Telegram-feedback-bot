@@ -4,7 +4,6 @@ import os
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
-from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 from dotenv import load_dotenv
@@ -25,22 +24,13 @@ async def main() -> None:
     token = os.getenv("BOT_TOKEN")
     admin_id_raw = os.getenv("ADMIN_ID")
 
-    if not token:
-        raise RuntimeError("BOT_TOKEN is not set in the environment.")
+    if not token or not admin_id_raw:
+        raise RuntimeError("BOT_TOKEN or ADMIN_ID is not set.")
 
-    if not admin_id_raw:
-        raise RuntimeError("ADMIN_ID is not set in the environment.")
-
-    try:
-        admin_id = int(admin_id_raw)
-    except ValueError as exc:
-        raise RuntimeError("ADMIN_ID must be an integer.") from exc
-
-    session = AiohttpSession(timeout=30)
+    admin_id = int(admin_id_raw)
 
     bot = Bot(
         token=token,
-        session=session,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
 
@@ -57,17 +47,11 @@ async def main() -> None:
     dp.include_router(admin.router)
 
     try:
-        await bot.delete_webhook(drop_pending_updates=True, request_timeout=30)
-    except Exception as e:
-        logging.warning(f"Не удалось удалить вебхук при старте: {e}")
-
-    try:
+        await bot.delete_webhook(drop_pending_updates=True)
         await dp.start_polling(bot, db=db, admin_id=admin_id)
     finally:
         await bot.session.close()
-
-        if db._conn:
-            await db._conn.close()
+        await db.close()
 
 
 if __name__ == "__main__":
