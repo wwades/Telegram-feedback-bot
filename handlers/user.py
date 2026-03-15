@@ -27,14 +27,15 @@ def get_user_contact_kb() -> InlineKeyboardMarkup:
 async def cmd_start(message: Message):
     await message.answer(
         "👋 Привет!\n\n"
-        "Напиши сообщение.\n"
-        "Чтобы получить контакты для связи, нажми на кнопки ниже:",
+        "Напиши любое сообщение.\n"
+        "Либо нажми кнопки ниже, чтобы получить мои контакты:",
         reply_markup=get_user_contact_kb(),
     )
 
 
 @router.callback_query(F.data == "get_mail")
 async def send_mail_val(callback: CallbackQuery):
+
     await callback.message.answer("`wade@onionmail.org`", parse_mode="MarkdownV2")
     await callback.answer()
 
@@ -55,12 +56,12 @@ async def handle_feedback(
         return
 
     user = message.from_user
+
     if await db.is_blocked(user.id):
         return
 
     full_name = user.full_name
     username = f"@{user.username}" if user.username else "скрыт"
-
     caption = (
         f"📩 *Новое сообщение*\n👤 От: {full_name} ({username})\n🆔 ID: `{user.id}`"
     )
@@ -76,25 +77,29 @@ async def handle_feedback(
         ]
     )
 
-    if message.text:
-        admin_msg = await bot.send_message(
-            chat_id=admin_id,
-            text=f"{caption}\n\n📝 Текст: {message.text}",
-            reply_markup=admin_kb,
-            parse_mode="Markdown",
-        )
-        await db.save_admin_message(user.id, admin_msg.message_id)
-    else:
-        media_msg = await bot.copy_message(
-            chat_id=admin_id,
-            from_chat_id=message.chat.id,
-            message_id=message.message_id,
-            caption=caption,
-            reply_markup=admin_kb,
-            parse_mode="Markdown",
-        )
-        await db.save_admin_message(user.id, media_msg.message_id)
+    try:
+        if message.text:
+            sent_msg = await bot.send_message(
+                chat_id=admin_id,
+                text=f"{caption}\n\n📝 Текст:\n{message.text}",
+                reply_markup=admin_kb,
+                parse_mode="Markdown",
+            )
 
-    await message.answer(
-        "✅ Ваше сообщение доставлено!", reply_markup=get_user_contact_kb()
-    )
+        else:
+            sent_msg = await message.copy_to(
+                chat_id=admin_id,
+                caption=caption,
+                reply_markup=admin_kb,
+                parse_mode="Markdown",
+            )
+
+        await db.save_admin_message(user.id, sent_msg.message_id)
+
+        await message.answer(
+            "✅ Ваше сообщение отправлено!", reply_markup=get_user_contact_kb()
+        )
+
+    except Exception as e:
+        await message.answer("❌ Произошла ошибка при отправке.")
+        print(f"Error forwarding message: {e}")
