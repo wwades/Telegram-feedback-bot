@@ -48,10 +48,18 @@ async def main() -> None:
 
     try:
         await bot.delete_webhook(drop_pending_updates=True)
-        await dp.start_polling(bot, db=db, admin_id=admin_id)
-    finally:
-        await bot.session.close()
-        await db.close()
+    except Exception as e:
+        logging.error(f"Ошибка при удалении вебхука: {e}")
+
+    while True:
+        try:
+            await dp.start_polling(bot, db=db, admin_id=admin_id)
+        except Exception as e:
+            logging.error(f"Критическая ошибка пуллинга: {e}")
+            await asyncio.sleep(5)
+        finally:
+            await bot.session.close()
+            await db.close()
 
 
 if __name__ == "__main__":
