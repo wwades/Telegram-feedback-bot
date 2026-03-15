@@ -4,12 +4,13 @@ import os
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
+from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 from dotenv import load_dotenv
 
 from database.db import Database
-from handlers import user, admin
+from handlers import admin, user
 from middlewares.block_middleware import BlockCheckMiddleware
 
 
@@ -35,10 +36,14 @@ async def main() -> None:
     except ValueError as exc:
         raise RuntimeError("ADMIN_ID must be an integer.") from exc
 
+    session = AiohttpSession(timeout=30)
+
     bot = Bot(
         token=token,
+        session=session,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
+
     storage = MemoryStorage()
     dp = Dispatcher(storage=storage)
 
@@ -51,14 +56,22 @@ async def main() -> None:
     dp.include_router(user.router)
     dp.include_router(admin.router)
 
-    await bot.delete_webhook(drop_pending_updates=True)
+    try:
+        await bot.delete_webhook(drop_pending_updates=True, request_timeout=30)
+    except Exception as e:
+        logging.warning(f"Не удалось удалить вебхук при старте: {e}")
 
     try:
         await dp.start_polling(bot, db=db, admin_id=admin_id)
     finally:
-        await db.close()
+        await bot.session.close()
+
+        if db._conn:
+            await db._conn.close()
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
-
+    try:
+        asyncio.run(main())
+    except (KeyboardInterrupt, SystemExit):
+        logging.info("Бот остановлен")

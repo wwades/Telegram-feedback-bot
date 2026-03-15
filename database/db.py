@@ -13,6 +13,11 @@ class Database:
             self._conn = await aiosqlite.connect(self._path)
             await self._init_db()
 
+    async def close(self) -> None:
+        if self._conn is not None:
+            await self._conn.close()
+            self._conn = None
+
     async def _init_db(self) -> None:
         assert self._conn is not None
         await self._conn.executescript(
